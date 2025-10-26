@@ -1,0 +1,56 @@
+name: Build NoGramTime APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: |
+            platforms;android-34
+            build-tools;34.0.0
+            platform-tools
+
+      - name: Unzip project
+        run: |
+          unzip -q NoGramTime_fixed.zip -d project_extracted
+          cd project_extracted
+          TOP=$(ls -d */ | head -n1 || true)
+          if [ -n "$TOP" ]; then cd "$TOP"; fi
+          echo "PWD=$(pwd)" >> $GITHUB_ENV
+
+      - name: Prepare Gradle wrapper if missing
+        run: |
+          cd "$PWD"
+          if [ ! -f gradlew ]; then
+            sudo apt-get update -y
+            sudo apt-get install -y gradle
+            gradle wrapper --gradle-version 8.7
+          fi
+          chmod +x gradlew
+
+      - name: Build debug APK
+        run: |
+          cd "$PWD"
+          ./gradlew --no-daemon assembleDebug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NoGramTime-apk
+          path: '**/build/outputs/apk/**/*debug*.apk'
