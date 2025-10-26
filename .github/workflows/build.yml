@@ -32,21 +32,32 @@ jobs:
       - name: Unzip project
         run: unzip -o NoGramTime_fixed.zip -d project
 
-      - name: Prepare Gradle wrapper if missing
+      - name: Detect Gradle project root
+        id: detect
         run: |
-          cd project
+          ROOT=$(find project -type f -name "build.gradle*" -printf '%h\n' | sort -u | head -n1)
+          if [ -z "$ROOT" ]; then
+            echo "❌ Nessun file build.gradle trovato."
+            exit 1
+          fi
+          echo "root=$ROOT" >> $GITHUB_OUTPUT
+
+      - name: Generate Gradle wrapper if missing
+        run: |
+          cd ${{ steps.detect.outputs.root }}
           if [ ! -f gradlew ]; then
+            echo "⚙️ Creazione wrapper Gradle..."
             gradle wrapper --gradle-version 8.7
           fi
           chmod +x gradlew
 
       - name: Build debug APK
         run: |
-          cd project
+          cd ${{ steps.detect.outputs.root }}
           ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: NoGramTime-APK
-          path: project/app/build/outputs/apk/debug/*.apk
+          path: ${{ steps.detect.outputs.root }}/app/build/outputs/apk/debug/*.apk
