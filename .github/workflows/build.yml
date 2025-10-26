@@ -20,7 +20,7 @@ jobs:
       - name: Install Android SDK
         run: |
           sudo apt-get update
-          sudo apt-get install -y wget unzip
+          sudo apt-get install -y wget unzip tree
           mkdir -p $HOME/android-sdk
           cd $HOME/android-sdk
           wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
@@ -31,6 +31,17 @@ jobs:
 
       - name: Unzip project
         run: unzip -o NoGramTime_fixed.zip -d project
+
+      - name: Inspect ZIP content
+        run: |
+          echo "== TOP LEVEL =="
+          ls -la
+          echo "== PROJECT TREE (first 400 lines) =="
+          find project -maxdepth 4 -printf '%y %p\n' | sed -n '1,400p'
+          echo "== POSSIBILI FILE GRADLE =="
+          find project -type f \( -iname "build.gradle*" -o -iname "settings.gradle*" -o -iname "gradlew" \) -print || true
+          echo "== MANIFEST =="
+          find project -type f -name "AndroidManifest.xml" -print || true
 
       - name: Detect Gradle project root
         id: detect
@@ -46,7 +57,6 @@ jobs:
         run: |
           cd ${{ steps.detect.outputs.root }}
           if [ ! -f gradlew ]; then
-            echo "⚙️ Creazione wrapper Gradle..."
             gradle wrapper --gradle-version 8.7
           fi
           chmod +x gradlew
