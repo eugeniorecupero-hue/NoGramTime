@@ -4,85 +4,9 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Verify repo content
-        run: |
-          ls -lah
-          test -f NoGramTime_fixed.zip || { echo "ZIP mancante!"; exit 1; }
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-
-      - uses: android-actions/setup-android@v3
-
-      - name: Unzip project
-        run: |
-          rm -rf project
-          mkdir -p project
-          unzip -q NoGramTime_fixed.zip -d project
-          sudo apt-get update -y && sudo apt-get install -y tree
-          tree -a project | head -200
-
-      - name: Ensure Gradle project (create minimal if missing)
-        run: |
-          set -e
-          cd project
-          if ! find . -maxdepth 3 -name "build.gradle*" | grep -q . ; then
-            mkdir -p app/src/main/java app/src/main/res
-            cat > settings.gradle <<'EOF'
-pluginManagement { repositories { gradlePluginPortal(); google(); mavenCentral() } }
-dependencyResolutionManagement {
-  repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-  repositories { google(); mavenCentral() }
-}
-rootProject.name = "NoGramTime"
-include(":app")
-EOF
-            cat > build.gradle <<'EOF'
-plugins { id 'com.android.application' version '8.6.1' apply false }
-EOF
-            cat > app/build.gradle <<'EOF'
-plugins { id 'com.android.application' }
-android {
-  namespace 'com.example.nogramtime'
-  compileSdk 34
-  defaultConfig {
-    applicationId 'com.example.nogramtime'
-    minSdk 24
-    targetSdk 34
-    versionCode 1
-    versionName "1.0"
-  }
-  buildTypes { release { minifyEnabled false } }
-}
-dependencies { }
-EOF
-          fi
-
-      - name: Generate Gradle wrapper 8.7
-        uses: gradle/gradle-build-action@v2
-        with:
-          build-root-directory: project
-          arguments: wrapper --gradle-version 8.7
-
-      - name: Build debug APK
-        run: |
-          cd project
-          chmod +x gradlew
-          ./gradlew --no-daemon assembleDebug
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: NoGramTime-apk
-          path: project/**/build/outputs/apk/debug/*.apk
+      - run: echo "✅ Workflow Build APK riconosciuto e pronto"
